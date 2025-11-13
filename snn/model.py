@@ -32,7 +32,9 @@ class SNNMLP(nn.Module):
 				m.reset_state()
 
 	def forward_step(self, x_t: torch.Tensor) -> torch.Tensor:
-		# x_t: [B, 1, 28, 28] 或 [B, 28*28] - 脉冲输入
+		# x_t: [B, C, H, W] 或 [B, input_dim] - 脉冲输入
+		# 对于MNIST: [B, 1, 28, 28] 或 [B, 784]
+		# 对于CIFAR-10: [B, 3, 32, 32] 或 [B, 3072]
 		if x_t.dim() > 2:
 			x_t = x_t.flatten(1)
 		z = x_t
@@ -43,8 +45,19 @@ class SNNMLP(nn.Module):
 	def forward_sequence(self, spike_sequence: Iterable[torch.Tensor]) -> torch.Tensor:
 		self.reset_state()
 		steps = 0
+
+		# T = spike_sequence.shape[0]
+
+		# # 生成时间维度的随机排列索引
+		# perm = torch.randperm(T)
+
+		# # 根据该随机排列重新索引时间维度
+		# spike_sequence = spike_sequence[perm, :, :]
+
+  
 		for x_t in spike_sequence:
 			logits_t = self.forward_step(x_t)
+			
 			steps += 1
 		# SpikeOutputLayer 已经累积了所有时间步的输出
 		return logits_t

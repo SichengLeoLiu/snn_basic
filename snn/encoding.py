@@ -19,5 +19,6 @@ def poisson_encode(images: torch.Tensor, num_steps: int, generator: torch.Genera
 def static_encode(images: torch.Tensor, num_steps: int, generator: torch.Generator | None = None):
 	"""静态编码：所有时间步都返回相同的脉冲（即 images > 0 的位置为 1，其余为 0）"""
 
-	for _ in range(num_steps):
-		yield images
+	return images.unsqueeze(0).expand(num_steps, *images.shape)
+	# for _ in range(num_steps):
+	# 	yield images

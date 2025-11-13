@@ -158,7 +158,7 @@ class SpikeOutputLayer(nn.Module):
 		if self._accumulated_output is None:
 			self._accumulated_output = current_logits
 		else:
-			# self._accumulated_output = current_logits
-			pass
+			self._accumulated_output = self._accumulated_output + current_logits
+			# pass
 		
 		return self._accumulated_output

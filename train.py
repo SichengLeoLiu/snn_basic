@@ -10,7 +10,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 
-from data import get_mnist_dataloaders
+from data import get_mnist_dataloaders, get_cifar10_dataloaders
 from snn import SNNMLP, poisson_encode, static_encode
 
 
@@ -55,6 +55,7 @@ def run_epoch(
 
 def main():
 	parser = argparse.ArgumentParser()
+	parser.add_argument("--dataset", type=str, default="mnist", choices=["mnist", "cifar10"], help="数据集选择：mnist 或 cifar10")
 	parser.add_argument("--data_dir", type=str, default="./data")
 	parser.add_argument("--batch_size", type=int, default=128)
 	parser.add_argument("--epochs", type=int, default=10)
@@ -66,9 +67,20 @@ def main():
 
 	device = torch.device(args.device)
 	Path(args.save_dir).mkdir(parents=True, exist_ok=True)
-	train_loader, test_loader = get_mnist_dataloaders(args.data_dir, args.batch_size)
+	
+	# 根据数据集选择加载器
+	if args.dataset == "mnist":
+		train_loader, test_loader = get_mnist_dataloaders(args.data_dir, args.batch_size)
+		input_dim = 28 * 28
+		ckpt_name = "best_snn_mnist.pt"
+	elif args.dataset == "cifar10":
+		train_loader, test_loader = get_cifar10_dataloaders(args.data_dir, args.batch_size)
+		input_dim = 32 * 32 * 3
+		ckpt_name = "best_snn_cifar10.pt"
+	else:
+		raise ValueError(f"不支持的数据集: {args.dataset}")
 
-	model = SNNMLP()
+	model = SNNMLP(input_dim=input_dim)
 	model.to(device)
 	optimizer = Adam(model.parameters(), lr=args.lr)
 	scheduler = CosineAnnealingLR(optimizer, T_max=args.epochs)
@@ -81,7 +93,7 @@ def main():
 		print(f"Epoch {epoch}: train_loss={train_loss:.4f} acc={train_acc:.4f} | val_loss={val_loss:.4f} acc={val_acc:.4f}")
 		if val_acc > best_acc:
 			best_acc = val_acc
-			ckpt = Path(args.save_dir) / "best_snn_mnist.pt"
+			ckpt = Path(args.save_dir) / ckpt_name
 			torch.save({
 				"epoch": epoch,
 				"model_state": model.state_dict(),
