@@ -1,0 +1,5 @@
+# 数据文件（通常很大，不应该提交）
+data/cifar-10-python.tar.gz
+data/cifar-10-batches-py/
+data/MNIST/
+*.tar.gz
