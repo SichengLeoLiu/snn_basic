@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 
 from data import get_mnist_dataloaders, get_cifar10_dataloaders
-from snn import SNNMLP, poisson_encode, static_encode
+from snn import SNNMLP, SNNResNet18, SNNVGG9, poisson_encode, static_encode
 
 
 def accuracy(logits: torch.Tensor, targets: torch.Tensor) -> float:
@@ -63,24 +63,45 @@ def main():
 	parser.add_argument("--lr", type=float, default=1e-3)
 	parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
 	parser.add_argument("--save_dir", type=str, default="./checkpoints")
+	parser.add_argument("--model", type=str, default="mlp", choices=["mlp", "resnet18", "vgg9"], help="模型架构选择：mlp、resnet18 或 vgg9")
 	args = parser.parse_args()
 
 	device = torch.device(args.device)
 	Path(args.save_dir).mkdir(parents=True, exist_ok=True)
-	
+	torch.manual_seed(42)
 	# 根据数据集选择加载器
 	if args.dataset == "mnist":
 		train_loader, test_loader = get_mnist_dataloaders(args.data_dir, args.batch_size)
 		input_dim = 28 * 28
-		ckpt_name = "best_snn_mnist.pt"
+		ckpt_name = f"best_snn_{args.model}_mnist.pt"
+		if args.model in ["resnet18", "vgg9"]:
+			print(f"警告：{args.model.upper()}通常用于CIFAR-10，MNIST建议使用MLP。将使用1通道输入。")
 	elif args.dataset == "cifar10":
 		train_loader, test_loader = get_cifar10_dataloaders(args.data_dir, args.batch_size)
 		input_dim = 32 * 32 * 3
-		ckpt_name = "best_snn_cifar10.pt"
+		ckpt_name = f"best_snn_{args.model}_cifar10.pt"
 	else:
 		raise ValueError(f"不支持的数据集: {args.dataset}")
 
-	model = SNNMLP(input_dim=input_dim)
+	# 根据模型类型创建模型
+	if args.model == "mlp":
+		model = SNNMLP(input_dim=input_dim)
+	elif args.model == "resnet18":
+		if args.dataset == "mnist":
+			# MNIST是1通道，需要调整输入通道数
+			model = SNNResNet18(num_classes=10, in_channels=1)
+		else:
+			# CIFAR-10是3通道
+			model = SNNResNet18(num_classes=10, in_channels=3)
+	elif args.model == "vgg9":
+		if args.dataset == "mnist":
+			# MNIST是1通道，需要调整输入通道数
+			model = SNNVGG9(num_classes=10, in_channels=1)
+		else:
+			# CIFAR-10是3通道
+			model = SNNVGG9(num_classes=10, in_channels=3)
+	else:
+		raise ValueError(f"不支持的模型: {args.model}")
 	model.to(device)
 	optimizer = Adam(model.parameters(), lr=args.lr)
 	scheduler = CosineAnnealingLR(optimizer, T_max=args.epochs)

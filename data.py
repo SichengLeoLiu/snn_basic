@@ -11,7 +11,7 @@ from torchvision import datasets, transforms
 def get_mnist_dataloaders(
 	data_dir: str | Path = "./data",
 	batch_size: int = 128,
-	workers: int = 2,
+	workers: int = 4,
 ) -> Tuple[DataLoader, DataLoader]:
 	transform = transforms.Compose([
 		transforms.ToTensor(),
@@ -28,7 +28,7 @@ def get_mnist_dataloaders(
 def get_cifar10_dataloaders(
 	data_dir: str | Path = "./data",
 	batch_size: int = 128,
-	workers: int = 2,
+	workers: int = 4,
 ) -> Tuple[DataLoader, DataLoader]:
 	transform = transforms.Compose([
 		transforms.ToTensor(),
